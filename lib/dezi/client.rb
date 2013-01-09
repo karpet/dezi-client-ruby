@@ -1,6 +1,6 @@
-# Dezi::Client is a Ruby client for the Dezi search platform.
+# DeziClient is part of a Ruby client for the Dezi search platform.
 # 
-# Copyright 2012 by Peter Karman
+# Copyright 2013 by Peter Karman
 # 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -59,6 +59,34 @@ class DeziClient
         @index_uri  = @about_server['index']
         @commit_uri = @about_server['commit']
         @rollback_uri = @about_server['rollback']
+        @fields     = @about_server['fields']
+        @facets     = @about_server['facets']
+        
+    end
+    
+    def add(doc, uri=nil, content_type=nil)
+    
+    end
+    
+    def update(doc, uri=nil, content_type=nil)
+    
+    end
+    
+    def delete(uri)
+    
+    end
+    
+    def commit()
+    
+    end
+    
+    def rollback()
+    
+    end
+    
+    def get(args)
+    
+    
     end
     
 end
