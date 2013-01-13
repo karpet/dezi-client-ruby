@@ -22,8 +22,11 @@
 
 class DeziResponse
     
-    def initialize()
-    
+    def initialize(http_resp)
+        @http_resp = http_resp
+        
+        puts http_resp.inspect
+        
     end
     
     def status()

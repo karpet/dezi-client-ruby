@@ -25,6 +25,10 @@ require 'rubygems'
 require 'rest_client'
 require 'json'
 
+# related classes
+require File.dirname(__FILE__) + '/response'
+require File.dirname(__FILE__) + '/doc'
+
 class DeziClient
 
     # attributes
@@ -45,7 +49,7 @@ class DeziClient
         @pw = password
         @debug = debug
         @ua = RestClient::Resource.new @server
-        response = @ua.get
+        response = @ua.get :accept => :json
         if response.code != 200
             warn "Bad about response from server #{@server}: " . response.to_str
         end
@@ -61,31 +65,89 @@ class DeziClient
         @rollback_uri = @about_server['rollback']
         @fields     = @about_server['fields']
         @facets     = @about_server['facets']
+        @searcher   = RestClient::Resource.new( @search_uri )
+        @indexer    = RestClient::Resource.new( @index_uri, 
+                :user => @un, :password => @pw, :accept => :json )
         
     end
     
-    def add(doc, uri=nil, content_type=nil)
+    def _put_doc(doc, uri=nil, content_type=nil)
+        body_buf = ""
+        
+        if (doc.is_a?('DeziDoc'))
+            body_buf = doc.as_string()
+            if (uri == nil)
+                uri = doc.uri
+            end
+            if (content_type == nil)
+                content_type = doc.mime_type
+            end
+            
+        elsif (Pathname(doc).exist)
+            file = File.new(doc, 'r')
+            body_buf = file.read()
+            if (uri == nil)
+                uri = doc
+            end
+            
+        else
+            body_buf = doc
+            if (uri == nil)
+                raise "uri required"
+            end
+            
+        end
+        
+        server_uri = '/' + uri
+        if (self.debug)
+            puts "uri=#{uri}"
+            puts "body=#{body_buf}"
+        end
+        
+        resp = self.indexer.post( server_uri, body_buf, 
+            :content_type => content_type, :accept => :json )
+            
+        return DeziResponse.new(resp)
+    end
     
+    def add(doc, uri=nil, content_type=nil)
+        return self._put_doc(doc, uri, content_type)
     end
     
     def update(doc, uri=nil, content_type=nil)
-    
+        return self._put_doc(doc, uri, content_type)
     end
     
     def delete(uri)
-    
+        resp = @indexer.delete(uri)
+        return DeziResponse.new(resp)
     end
     
     def commit()
-    
+        ua = RestClient::Resource.new( @commit_uri, @un, @pw )
+        resp = ua.post('/', :accept => :json)
+        return DeziResponse.new(resp)
     end
     
     def rollback()
-    
+        ua = RestClient::Resource.new( @rollback_uri, @un, @pw )
+        resp = ua.post('/', :accept => :json)
+        return DeziResponse.new(resp)
     end
     
-    def get(args)
-    
+    def search(args)
+        if (!args.has_key?("q"))
+            raise "'q' param required"
+        end
+        
+        resp = @searcher.get(args, :accept => :json)
+        dr = DeziResponse.new(resp)
+        if (!dr.is_success())
+            @last_response = dr
+            return false
+        else
+            return dr
+        end
     
     end
     

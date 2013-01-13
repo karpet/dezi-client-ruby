@@ -39,7 +39,7 @@ class DeziClientTest < Test::Unit::TestCase
   
   def test_commit
     client = DeziClient.new()
-    client.commit()
+    resp = client.commit()
     assert_equal( resp.is_success(), true, "commit" )
     assert_equal( resp.status(), '200', "commit returns 200" )
   end
@@ -52,7 +52,7 @@ class DeziClientTest < Test::Unit::TestCase
   
   def test_search
     client = DeziClient.new()
-    resp = client.search(:q => 'dezi')
+    resp = client.search('q' => 'dezi')
     # debug
     puts resp.inspect
     
