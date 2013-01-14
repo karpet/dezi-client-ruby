@@ -47,7 +47,7 @@ class DeziResponse
         
         body = JSON.parse(http_resp.to_s)
         
-        warn body.inspect
+        #warn body.inspect
         
         # set body keys as attributes in the object
         body.each {|k,v|

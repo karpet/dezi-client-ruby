@@ -124,12 +124,8 @@ class DeziClient
             puts "content_type="#{content_type}"
         end
         
-        resp = RestClient.post( @index_uri + server_uri, body_buf,
-                :user       => @un, 
-                :password   => @pw, 
-                :accept     => :json,
-                :content_type => content_type 
-        )
+        resource = RestClient::Resource.new(@index_uri + server_uri, @un, @pw)
+        resp = resource.post( body_buf, :accept => :json, :content_type => content_type )
             
         return DeziResponse.new(resp)
     end
@@ -144,7 +140,8 @@ class DeziClient
     
     def delete(uri)
         doc_uri = @index_uri + '/' + uri
-        resp = RestClient.delete(doc_uri, :user => @un, :password => @pw, :accept => :json)
+        resource = RestClient::Resource.new(doc_uri, @un, @pw)
+        resp = resource.delete(:accept => :json)
         return DeziResponse.new(resp)
     end
     
