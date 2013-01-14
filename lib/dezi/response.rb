@@ -25,7 +25,13 @@ require 'json'
 
 class DeziResponse
 
-    # most attributes are assigned dynamically in initialize
+    # most attributes are assigned dynamically in initialize().
+    # Try:
+    #  
+    #  puts response.inspect
+    #
+    # to see them.
+    
     attr_accessor :results
     
     def initialize(http_resp)

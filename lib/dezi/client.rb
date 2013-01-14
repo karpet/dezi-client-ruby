@@ -1,4 +1,4 @@
-# DeziClient is part of a Ruby client for the Dezi search platform.
+# DeziClient is a Ruby client for the Dezi search platform.
 # 
 # Copyright 2013 by Peter Karman
 # 
@@ -31,6 +31,42 @@ require 'mime/types'
 require File.dirname(__FILE__) + '/response'
 require File.dirname(__FILE__) + '/doc'
 
+# DeziClient is a Ruby client for indexing and searching documents
+# with the Dezi REST search platform. See http://dezi.org/ for details
+# on the server.
+#
+# See the test/test_dezi_client.rb for full example.
+#
+# Usage:
+#
+#  client = DeziClient.new(
+#       :server     => 'http://localhost:5000',
+#       :username   => 'foo',
+#       :password   => 'secret',
+#  )
+#
+#  doc = 'some/path/file.html'
+#  response = client.add(doc)   # DeziResponse returned
+#  if !response.is_success
+#     raise "Failed to add #{doc} to server"
+#  end
+#
+#  # if Dezi server has auto_commit==false
+#  # then must call commit()
+#  client.commit()
+#
+#  response = client.search('q' => 'search string')  # DeziResponse returned
+#  if !response.is_success
+#     raise "Failed to search"
+#  end
+#
+#  response.results.each |result|
+#     puts "result: #{result.uri}"
+#  end
+#
+# Related classes: DeziResponse and DeziDoc
+#
+
 class DeziClient
 
     # attributes
@@ -44,6 +80,11 @@ class DeziClient
     attr_accessor :facets
     attr_accessor :last_response
     attr_accessor :debug
+    attr_accessor :user_agent
+    
+    def version
+        return '1.0.0'
+    end
     
     def initialize(args)
         @debug = ENV['DEZI_DEBUG']
@@ -59,11 +100,17 @@ class DeziClient
             @pw = args[:password]
         end
         
+        if (args.has_key? :user_agent)
+            @user_agent = args[:user_agent]
+        else
+            @user_agent = 'dezi-client-ruby/'+version()
+        end
+        
         if (args.has_key? :search and args.has_key? :index)
             @search_uri = @server + args[:search]
             @index_uri  = @server + args[:index]
         else
-            response = RestClient.get @server, :accept => :json
+            response = RestClient.get @server, :accept => :json, :user_agent => @user_agent
 
             if response.code != 200
                 raise "Bad about response from server #{@server}: " . response.to_str
@@ -85,6 +132,8 @@ class DeziClient
         @searcher   = RestClient::Resource.new( @search_uri )
         
     end
+    
+    private
     
     def _put_doc(doc, uri=nil, content_type=nil)
         body_buf = ""
@@ -125,44 +174,70 @@ class DeziClient
         end
         
         resource = RestClient::Resource.new(@index_uri + server_uri, @un, @pw)
-        resp = resource.post( body_buf, :accept => :json, :content_type => content_type )
+        resp = resource.post( body_buf, 
+            :accept => :json, 
+            :content_type => content_type, 
+            :user_agent => @user_agent
+        )
             
         return DeziResponse.new(resp)
     end
     
+    public
+
+    # add() takes an initial argument of "doc" which can be a DeziDoc object,
+    # a string representing a Pathname, or a string representing the content of a document.
+    # If "doc" represents the content of a document, additional arguments
+    # "uri" and "content_type" are required.
+    
     def add(doc, uri=nil, content_type=nil)
-        return self._put_doc(doc, uri, content_type)
+        return _put_doc(doc, uri, content_type)
     end
     
+    # update() takes an initial argument of "doc" which can be a DeziDoc object,
+    # a string representing a Pathname, or a string representing the content of a document.
+    # If "doc" represents the content of a document, additional arguments
+    # "uri" and "content_type" are required.
+    
     def update(doc, uri=nil, content_type=nil)
-        return self._put_doc(doc, uri, content_type)
+        return _put_doc(doc, uri, content_type)
     end
     
     def delete(uri)
         doc_uri = @index_uri + '/' + uri
         resource = RestClient::Resource.new(doc_uri, @un, @pw)
-        resp = resource.delete(:accept => :json)
+        resp = resource.delete(:accept => :json, :user_agent => @user_agent)
         return DeziResponse.new(resp)
     end
     
+    # commit() and rollback() are only relevant if the Dezi server
+    # has "auto_commit" turned off.
+     
     def commit()
         ua = RestClient::Resource.new( @commit_uri, @un, @pw )
-        resp = ua.post('/', :accept => :json)
+        resp = ua.post('/', :accept => :json, :user_agent => @user_agent)
         return DeziResponse.new(resp)
     end
+    
+    # commit() and rollback() are only relevant if the Dezi server
+    # has "auto_commit" turned off.
     
     def rollback()
         ua = RestClient::Resource.new( @rollback_uri, @un, @pw )
-        resp = ua.post('/', :accept => :json)
+        resp = ua.post('/', :accept => :json, :user_agent => @user_agent)
         return DeziResponse.new(resp)
     end
     
-    def search(args)
-        if (!args.has_key?("q"))
+    def search(params)
+        if (!params.has_key?("q"))
             raise "'q' param required"
         end
         
-        resp = @searcher.get(:params => args, :accept => :json)
+        resp = @searcher.get(
+            :params => params, 
+            :accept => :json, 
+            :user_agent => @user_agent
+        )
         dr = DeziResponse.new(resp)
         if (!dr.is_success())
             @last_response = dr
