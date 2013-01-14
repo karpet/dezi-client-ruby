@@ -24,6 +24,8 @@
 require 'rubygems'
 require 'rest_client'
 require 'json'
+require 'pathname'
+require 'mime/types'
 
 # related classes
 require File.dirname(__FILE__) + '/response'
@@ -43,38 +45,51 @@ class DeziClient
     attr_accessor :last_response
     attr_accessor :debug
     
-    def initialize(server='http://localhost:5000', search='/search', index='/index', debug=false, username=false, password=false)
-        @server = server
-        @un = username
-        @pw = password
-        @debug = debug
-        @ua = RestClient::Resource.new @server
-        response = @ua.get :accept => :json
-        if response.code != 200
-            warn "Bad about response from server #{@server}: " . response.to_str
+    def initialize(args)
+        @debug = ENV['DEZI_DEBUG']
+        
+        if (args.has_key? :server)
+            @server = args[:server]
+        else 
+            @server = 'http://localhost:5000'
         end
         
-        @about_server = JSON.parse(response.to_str)
-        if @debug
-            puts @about_server.inspect
+        if (args.has_key? :username and args.has_key? :password)
+            @un = args[:username]
+            @pw = args[:password]
         end
         
-        @search_uri = @about_server['search']
-        @index_uri  = @about_server['index']
-        @commit_uri = @about_server['commit']
-        @rollback_uri = @about_server['rollback']
-        @fields     = @about_server['fields']
-        @facets     = @about_server['facets']
+        if (args.has_key? :search and args.has_key? :index)
+            @search_uri = @server + args[:search]
+            @index_uri  = @server + args[:index]
+        else
+            response = RestClient.get @server, :accept => :json
+
+            if response.code != 200
+                raise "Bad about response from server #{@server}: " . response.to_str
+            end
+        
+            @about_server = JSON.parse(response.to_str)
+            if @debug
+                #puts @about_server.inspect
+            end
+        
+            @search_uri = @about_server['search']
+            @index_uri  = @about_server['index']
+            @commit_uri = @about_server['commit']
+            @rollback_uri = @about_server['rollback']
+            @fields     = @about_server['fields']
+            @facets     = @about_server['facets']
+        end
+        
         @searcher   = RestClient::Resource.new( @search_uri )
-        @indexer    = RestClient::Resource.new( @index_uri, 
-                :user => @un, :password => @pw, :accept => :json )
         
     end
     
     def _put_doc(doc, uri=nil, content_type=nil)
         body_buf = ""
-        
-        if (doc.is_a?('DeziDoc'))
+                
+        if (doc.is_a?(DeziDoc))
             body_buf = doc.as_string()
             if (uri == nil)
                 uri = doc.uri
@@ -83,7 +98,7 @@ class DeziClient
                 content_type = doc.mime_type
             end
             
-        elsif (Pathname(doc).exist)
+        elsif (Pathname.new(doc).exist?)
             file = File.new(doc, 'r')
             body_buf = file.read()
             if (uri == nil)
@@ -98,14 +113,23 @@ class DeziClient
             
         end
         
-        server_uri = '/' + uri
-        if (self.debug)
-            puts "uri=#{uri}"
-            puts "body=#{body_buf}"
+        if (!content_type or !content_type.length)
+            content_type = MIME::Types.type_for(uri)[0]
         end
         
-        resp = self.indexer.post( server_uri, body_buf, 
-            :content_type => content_type, :accept => :json )
+        server_uri = '/' + uri
+        if (@debug)
+            puts "uri=#{uri}"
+            puts "body=#{body_buf}"
+            puts "content_type="#{content_type}"
+        end
+        
+        resp = RestClient.post( @index_uri + server_uri, body_buf,
+                :user       => @un, 
+                :password   => @pw, 
+                :accept     => :json,
+                :content_type => content_type 
+        )
             
         return DeziResponse.new(resp)
     end
@@ -119,7 +143,8 @@ class DeziClient
     end
     
     def delete(uri)
-        resp = @indexer.delete(uri)
+        doc_uri = @index_uri + '/' + uri
+        resp = RestClient.delete(doc_uri, :user => @un, :password => @pw, :accept => :json)
         return DeziResponse.new(resp)
     end
     
@@ -140,7 +165,7 @@ class DeziClient
             raise "'q' param required"
         end
         
-        resp = @searcher.get(args, :accept => :json)
+        resp = @searcher.get(:params => args, :accept => :json)
         dr = DeziResponse.new(resp)
         if (!dr.is_success())
             @last_response = dr

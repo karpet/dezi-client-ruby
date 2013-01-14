@@ -20,6 +20,9 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'rubygems'
+require 'xmlsimple'
+
 class DeziDoc
 
     attr_accessor   :mime_type
@@ -32,8 +35,35 @@ class DeziDoc
     attr_accessor   :score
     attr_accessor   :fields
     
-    def initialize()
+    def initialize(args)
+        args.each {|k,v| send("#{k}=",v)}
+        @fields = {}
+    end
     
+    def set_field(args)
+        args.each {|k,v| @fields[k] = v}
+        @mime_type = 'application/xml'
+    end
+    
+    def get_field(fname)
+        if @fields.has_key?(fname)
+            return @fields[fname]
+        else
+            return nil
+        end
+    end
+    
+    def as_string()
+        #puts "fields.length=" + @fields.length.to_s
+        if @fields.length > 0
+            return self.as_xml()
+        else
+            return @content
+        end
+    end
+    
+    def as_xml()
+        return XmlSimple.xml_out(@fields, {'rootname' => 'doc', 'noattr' => true})
     end
 
 end

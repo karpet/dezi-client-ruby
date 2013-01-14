@@ -20,21 +20,75 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'rubygems'
+require 'json'
+
 class DeziResponse
+
+    # most attributes are assigned dynamically in initialize
+    attr_accessor :results
     
     def initialize(http_resp)
         @http_resp = http_resp
         
-        puts http_resp.inspect
+        #warn http_resp.headers.inspect
+        #warn "code=" + http_resp.code.to_s
+        
+        @is_ok = false
+        if (http_resp.code.to_s =~ /^2\d\d/)
+            @is_ok = true
+        end
+        
+        if (!@is_ok)
+            return
+        end
+        
+        #warn "is_ok=#{@is_ok}"
+        
+        body = JSON.parse(http_resp.to_s)
+        
+        warn body.inspect
+        
+        # set body keys as attributes in the object
+        body.each {|k,v|
+        
+            # results are special
+            if k == 'results'
+                next
+            end
+        
+            # create the attribute
+            self.instance_eval { class << self; self end }.send(:attr_accessor, k)
+            
+            # assign the value
+            send("#{k}=",v)
+        }
+        
+        if !body.has_key?('results')
+            return
+        end
+        
+        # make each result Hash into a DeziDoc object
+        @results = []
+        body['results'].each {|r|
+            result = r
+            result['fields'] = {}
+            @fields.each {|f|
+                result['fields'][f] = r.delete(f)
+            }
+        
+            doc = DeziDoc.new(result)
+            @results.push(doc)
+        }
         
     end
     
     def status()
-    
+        return @http_resp.code.to_s
     end
     
     def is_success()
-    
+        return @is_ok
     end
 
 end
