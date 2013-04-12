@@ -23,6 +23,7 @@
 # dependencies
 require 'rubygems'
 require 'rest_client'
+require 'uri'
 require 'json'
 require 'pathname'
 require 'mime/types'
@@ -93,6 +94,16 @@ class DeziClient
             @server = args[:server]
         else 
             @server = 'http://localhost:5000'
+        end
+
+        # sanity check
+        begin
+            uri = URI.parse(@server)
+        rescue URI::InvalidURIError => err
+            raise "Bad :server value " + err
+        end
+        if (!uri.host || !uri.port)
+            raise "Bad :server value " + @server
         end
         
         if (args.has_key? :username and args.has_key? :password)
