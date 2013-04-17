@@ -36,8 +36,8 @@ class DeziDoc
     attr_accessor   :fields
     
     def initialize(args)
-        args.each {|k,v| send("#{k}=",v)}
         @fields = {}
+        args.each {|k,v| send("#{k}=",v)}
     end
     
     def set_field(args)
