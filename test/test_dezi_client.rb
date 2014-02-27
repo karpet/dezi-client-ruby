@@ -4,9 +4,10 @@ require 'dezi/client'
 class DeziClientTest < Test::Unit::TestCase
 
   def test_dezi_client
-    client = DeziClient.new(:username => 'foo', :password => 'bar')
-    assert_equal( 'http://localhost:5000', client.server, "server hostname" )
-    assert_equal( 'http://localhost:5000/search', client.search_uri, "search uri")
+    server_uri = ENV['DEZI_SERVER'] || 'http://localhost:5000'
+    client = DeziClient.new(:username => 'foo', :password => 'bar', :server => server_uri)
+    assert_equal( server_uri, client.server, "server hostname" )
+    assert_equal( server_uri+'/search', client.search_uri, "search uri")
 
     resp = client.add('test/test.html')
     assert_equal( resp.is_success(), true, "add from filesystem" )
