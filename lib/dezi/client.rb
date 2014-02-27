@@ -239,7 +239,7 @@ class DeziClient
     def delete(uri)
         doc_uri = @index_uri + '/' + uri
         conn = connection(doc_uri)
-        resp = conn.delete()
+        resp = conn.delete
         return DeziResponse.new(resp)
     end
     
@@ -248,7 +248,7 @@ class DeziClient
      
     def commit()
         conn = connection(@commit_uri)
-        resp = conn.post(@commit_uri)
+        resp = conn.post
         return DeziResponse.new(resp)
     end
     
@@ -257,7 +257,7 @@ class DeziClient
     
     def rollback()
         conn = connection(@rollback_uri)
-        resp = conn.post(@rollback_uri)
+        resp = conn.post 
         return DeziResponse.new(resp)
     end
     
