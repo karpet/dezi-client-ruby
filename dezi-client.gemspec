@@ -12,7 +12,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "faraday"
   s.add_runtime_dependency "faraday_middleware"
   s.add_runtime_dependency "excon"
-  s.add_runtime_dependency "json"
   s.add_runtime_dependency "mime-types"
   s.add_runtime_dependency "xml-simple"
 

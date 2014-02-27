@@ -24,7 +24,6 @@
 require 'rubygems'
 require 'faraday_middleware'
 require 'uri'
-require 'json'
 require 'pathname'
 require 'mime/types'
 
