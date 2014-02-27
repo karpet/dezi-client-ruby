@@ -20,9 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-require 'rubygems'
-require 'json'
-
 class DeziResponse
 
     # most attributes are assigned dynamically in initialize().
@@ -38,10 +35,10 @@ class DeziResponse
         @http_resp = http_resp
         
         #warn http_resp.headers.inspect
-        #warn "code=" + http_resp.code.to_s
+        #warn "code=" + http_resp.status.to_s
         
         @is_ok = false
-        if (http_resp.code.to_s =~ /^2\d\d/)
+        if (http_resp.status.to_s =~ /^2\d\d/)
             @is_ok = true
         end
         
@@ -51,7 +48,7 @@ class DeziResponse
         
         #warn "is_ok=#{@is_ok}"
         
-        body = JSON.parse(http_resp.to_s)
+        body = http_resp.body
         
         #warn body.inspect
         
@@ -90,7 +87,7 @@ class DeziResponse
     end
     
     def status()
-        return @http_resp.code.to_s
+        return @http_resp.status
     end
     
     def is_success()

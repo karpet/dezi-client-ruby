@@ -22,7 +22,7 @@
 
 # dependencies
 require 'rubygems'
-require 'rest_client'
+require 'faraday_middleware'
 require 'uri'
 require 'json'
 require 'pathname'
@@ -84,9 +84,31 @@ class DeziClient
     attr_accessor :user_agent
     
     def version
-        return '1.0.0'
+        return "1.1.0"
     end
-    
+
+    def connection(uri)
+        opts = { 
+            :url => uri,
+            :headers => {
+                 'User-Agent'   => @user_agent,
+                 'Accept'       => 'application/json'
+            }   
+        }   
+        conn = Faraday.new(opts) do |faraday|
+            faraday.request :url_encoded
+            [:mashify, :json, :raise_error].each{|mw| faraday.response(mw) }
+            faraday.response :logger if @debug
+            faraday.adapter  :excon
+        end 
+
+        if (@un && @pw)
+            conn.request :basic_auth, @un, @pw
+        end
+
+        return conn
+    end
+ 
     def initialize(args)
         @debug = ENV['DEZI_DEBUG']
         
@@ -121,26 +143,26 @@ class DeziClient
             @search_uri = @server + args[:search]
             @index_uri  = @server + args[:index]
         else
-            response = RestClient.get @server, :accept => :json, :user_agent => @user_agent
+            conn = connection(@server)
+            response = conn.get '/'
 
-            if response.code != 200
-                raise "Bad about response from server #{@server}: " . response.to_str
+            if response.status != 200
+                raise "Bad about response from server #{@server}: " . response.body
             end
-        
-            @about_server = JSON.parse(response.to_str)
+            @about_server = response.body
             if @debug
-                #puts @about_server.inspect
+                puts @about_server.inspect
             end
         
-            @search_uri = @about_server['search']
-            @index_uri  = @about_server['index']
-            @commit_uri = @about_server['commit']
+            @search_uri   = @about_server['search']
+            @index_uri    = @about_server['index']
+            @commit_uri   = @about_server['commit']
             @rollback_uri = @about_server['rollback']
-            @fields     = @about_server['fields']
-            @facets     = @about_server['facets']
+            @fields       = @about_server['fields']
+            @facets       = @about_server['facets']
         end
         
-        @searcher   = RestClient::Resource.new( @search_uri )
+        @searcher = connection( @search_uri )
         
     end
     
@@ -184,12 +206,12 @@ class DeziClient
             puts "content_type="#{content_type}"
         end
         
-        resource = RestClient::Resource.new(@index_uri + server_uri, @un, @pw)
-        resp = resource.post( body_buf, 
-            :accept => :json, 
-            :content_type => content_type, 
-            :user_agent => @user_agent
-        )
+        conn = connection(@index_uri)
+        resp = conn.post do |req|
+            req.url @index_uri + server_uri
+            req.body = body_buf
+            req.headers['Content-Type'] = content_type
+        end
             
         return DeziResponse.new(resp)
     end
@@ -216,8 +238,8 @@ class DeziClient
     
     def delete(uri)
         doc_uri = @index_uri + '/' + uri
-        resource = RestClient::Resource.new(doc_uri, @un, @pw)
-        resp = resource.delete(:accept => :json, :user_agent => @user_agent)
+        conn = connection(doc_uri)
+        resp = conn.delete()
         return DeziResponse.new(resp)
     end
     
@@ -225,8 +247,8 @@ class DeziClient
     # has "auto_commit" turned off.
      
     def commit()
-        ua = RestClient::Resource.new( @commit_uri, @un, @pw )
-        resp = ua.post('/', :accept => :json, :user_agent => @user_agent)
+        conn = connection(@commit_uri)
+        resp = conn.post(@commit_uri)
         return DeziResponse.new(resp)
     end
     
@@ -234,8 +256,8 @@ class DeziClient
     # has "auto_commit" turned off.
     
     def rollback()
-        ua = RestClient::Resource.new( @rollback_uri, @un, @pw )
-        resp = ua.post('/', :accept => :json, :user_agent => @user_agent)
+        conn = connection(@rollback_uri)
+        resp = conn.post(@rollback_uri)
         return DeziResponse.new(resp)
     end
     
@@ -244,11 +266,7 @@ class DeziClient
             raise "'q' param required"
         end
         
-        resp = @searcher.get(
-            :params => params, 
-            :accept => :json, 
-            :user_agent => @user_agent
-        )
+        resp = @searcher.get @search_uri, params
         dr = DeziResponse.new(resp)
         if (!dr.is_success())
             @last_response = dr

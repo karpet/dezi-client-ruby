@@ -1,6 +1,8 @@
 require 'test/unit'
 require 'dezi/client'
 
+# expects server running with 'dezi --no-auto_commit'
+
 class DeziClientTest < Test::Unit::TestCase
 
   def test_dezi_client
@@ -31,7 +33,7 @@ class DeziClientTest < Test::Unit::TestCase
 
     resp = client.commit()
     assert_equal( resp.is_success(), true, "commit" )
-    assert_equal( resp.status(), '200', "commit returns 200" )
+    assert_equal( resp.status(), 200, "commit returns 200" )
 
     resp = client.delete('foo/bar.html')
     assert_equal( resp.is_success(), true, "delete doc" )
