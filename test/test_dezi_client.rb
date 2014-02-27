@@ -38,7 +38,7 @@ class DeziClientTest < Test::Unit::TestCase
     resp = client.delete('foo/bar.html')
     assert_equal( resp.is_success(), true, "delete doc" )
 
-    resp = client.search('q' => 'dezi')
+    resp = client.search('q' => 'dezi', 'x' => ['swishmime', 'swishencoding'])
     
     # debug
     #puts resp.inspect

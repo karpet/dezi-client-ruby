@@ -121,7 +121,7 @@ class DeziClient
             faraday.request :url_encoded
             [:mashify, :json, :raise_error].each{|mw| faraday.response(mw) }
             faraday.response :logger if @debug
-            faraday.adapter  :excon
+            faraday.adapter  :excon   # IMPORTANT this is last
         end 
 
         if (@un && @pw)
