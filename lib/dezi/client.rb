@@ -104,6 +104,7 @@ class DeziClient
     attr_accessor :last_response
     attr_accessor :debug
     attr_accessor :user_agent
+    attr_accessor :cookies
     
     def version
         return "1.1.0"
@@ -114,7 +115,8 @@ class DeziClient
             :url => uri,
             :headers => {
                  'User-Agent'   => @user_agent,
-                 'Accept'       => 'application/json'
+                 'Accept'       => 'application/json',
+                 'Cookie'       => @cookies
             }   
         }   
         conn = Faraday.new(opts) do |faraday|
@@ -159,6 +161,12 @@ class DeziClient
             @user_agent = args[:user_agent]
         else
             @user_agent = 'dezi-client-ruby/'+version()
+        end
+
+        if (args.has_key? :cookies)
+            @cookies = args[:cookies]
+        else 
+            @cookies = ''
         end
         
         if (args.has_key? :search and args.has_key? :index)
