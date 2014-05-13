@@ -26,6 +26,9 @@ See http://dezi.org/
 
 ## ChangeLog
 
+1.1.2 - 2014-05-13
+ - fix packaging error in gemspec with dependency version
+
 1.1.1 - 2014-05-13
  - workaround Dezi server bug where 'fields' slot in response is null
 

@@ -107,7 +107,7 @@ class DeziClient
     attr_accessor :cookies
     
     def version
-        return "1.1.1"
+        return "1.1.2"
     end
 
     def connection(uri)
