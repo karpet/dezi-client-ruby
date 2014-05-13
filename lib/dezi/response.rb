@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+require 'pp'
 class DeziResponse
 
     # most attributes are assigned dynamically in initialize().
@@ -76,15 +77,18 @@ class DeziResponse
         
         # make each result Hash into a DeziDoc object
         @results = body['results'].map {|r|
-            result = r
-            result['fields'] = {}
-            @fields.each {|f|
-                result['fields'][f] = r.delete(f)
+            rhash = r.to_hash
+            res_fields = rhash.keys
+            result = { 'fields' => {} }
+            res_fields.each {|f|
+                result['fields'][f] = rhash.delete(f)
+                if (DeziDoc.method_defined? f)
+                    result[f] = result['fields'][f]
+                end
             }
-        
             DeziDoc.new(result)
         }
-        
+
     end
     
     def status()

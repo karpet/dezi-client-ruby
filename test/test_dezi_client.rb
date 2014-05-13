@@ -1,4 +1,5 @@
 require 'test/unit'
+require 'pp'
 require 'dezi/client'
 
 # expects server running with 'dezi --no-auto_commit'
@@ -41,7 +42,7 @@ class DeziClientTest < Test::Unit::TestCase
     resp = client.search('q' => 'dezi', 'x' => ['swishmime', 'swishencoding'])
     
     # debug
-    #puts resp.inspect
+    #puts pp resp
     
     # iterate through results
     resp.results.each do |result|
