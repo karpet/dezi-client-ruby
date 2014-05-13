@@ -24,4 +24,13 @@ Example:
 
 See http://dezi.org/
 
+## ChangeLog
 
+1.1.1 - 2014-05-13
+ - workaround Dezi server bug where 'fields' slot in response is null
+
+1.1.0 - 2014-02-28
+ - switch to Faraday http engine with multi-value param hack
+
+1.0.0 - 2013-04-16
+ - initial release
